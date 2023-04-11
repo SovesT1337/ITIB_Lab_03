@@ -2,43 +2,39 @@ import math
 import matplotlib.pyplot as plt
 
 parts = 20
-p = 4
+p = 8
+a = 0
+b = 4
+step = (b - a) / parts
 
 
 def function(t):
-    return math.sin(0.1 * t * t * t - 0.2 * t * t + t - 1)
-
-
-class Function:
-    def __init__(self, y, x):
-        self.y = y
-        self.x = x
+    return math.sin(t - 1)
+    # return math.sin(0.1 * t ** 3 - 0.2 * t ** 2 + t - 1)
 
 
 class Network:
     def __init__(self):
-        self.weights = [0, 0, 0, 0, 0]
+        self.weights = [i_ * 0 for i_ in range(p + 1)]
         self.matrix = []
 
-    def init_matrix(self, p_, func):
+    def init_matrix(self, p_, y_):
         for j_ in range(0, parts - p_):
-            self.matrix.append([])
-            for i_ in range(0 + j_, p_ + j_):
-                self.matrix[j_].append(func.y[i_])
+            self.matrix.append(y_[j_:j_ + p_])
 
     def one_epoch_learning(self, function_y, p_):
         epsilon_2 = 0
         for i_ in range(0, parts - p_):
             net = self.weights[0]
-            for j in range(1, p_ + 1):
-                net += self.weights[j] * self.matrix[i_][j - 1]
+            for j_ in range(1, p_ + 1):
+                net += self.weights[j_] * self.matrix[i_][j_ - 1]
 
-            sigma = function_y[i_ + p_] - net
-            epsilon_2 += sigma ** 2
+            error_ = function_y[i_ + p_] - net
+            epsilon_2 += error_ ** 2
 
-            self.weights[0] += 0.3 * sigma
-            for j in range(1, p_ + 1):
-                self.weights[j] += 0.3 * sigma * self.matrix[i_][j - 1]
+            self.weights[0] += 0.3 * error_
+            for j_ in range(1, p_ + 1):
+                self.weights[j_] += 0.3 * error_ * self.matrix[i_][j_ - 1]
 
         return math.sqrt(epsilon_2)
 
@@ -55,53 +51,46 @@ class Network:
         return errors_
 
     def predicting(self, function_x, function_y, p_):
-        predicted_vector = []
-        for i_ in range(parts - p_, parts):
-            predicted_vector.append(function_y[i_])
-        for i_ in range(0, parts):
-            net = 0
-            length = len(predicted_vector)
-            for j in range(0, p_ + 1):
-                if j == 0:
-                    net += self.weights[0]
-                else:
-                    net += self.weights[j] * predicted_vector[length - p_ + j - 1]
-            predicted_vector.append(net)
         predicted_x = []
-        for i_ in range(0, parts):
-            predicted_x.append(function_x[i_] + p_)
         real_y = []
-        for i_ in range(0, parts):
-            real_y.append(function(predicted_x[i_]))
+        predicted_y = function_y[parts - p_:-1]
+
+        x = b
+        while x < 2 * b - a:
+            net = 0
+            length = len(predicted_y)
+            net += self.weights[0]
+            for j in range(1, p_ + 1):
+                net += self.weights[j] * predicted_y[length - p_ + j - 1]
+            predicted_y.append(net)
+            predicted_x.append(x)
+            real_y.append(function(x))
+            x += step
 
         plt.plot(function_x, function_y, 'g')
-        plt.plot([function_x[len(function_x) - 1], predicted_x[0]], [function_y[len(function_y) - 1], real_y[0]], 'y')
-        plt.plot(predicted_x, real_y, 'b')
-        plt.plot(predicted_x, predicted_vector[4:], 'ro')
+        plt.plot(predicted_x, real_y, 'g')
+        plt.plot(predicted_x, predicted_y[p_:], 'ro')
         plt.show()
 
 
 if __name__ == '__main__':
-    vector_y = []
-    vector_x = []
-    a = -1
-    b = 1
-    step = (b - a) / parts
-    for i in range(0, parts):
+    y = []
+    x = []
+
+    for i in range(0, parts + 1):
         d = function(a + step * i)
-        vector_x.append(a + step * i)
-        vector_y.append(d)
-    d = Function(vector_y, vector_x)
+        x.append(a + step * i)
+        y.append(d)
 
     N = Network()
-    N.init_matrix(p, d)
-    N.learning(d.y, p, 10)
-    N.predicting(d.x, d.y, p)
+    N.init_matrix(p, y)
+    N.learning(y, p, 10)
+    N.predicting(x, y, p)
 
     N_2 = Network()
-    N_2.init_matrix(p, d)
-    errors = N_2.learning(d.y, p, 4000)
-    N_2.predicting(d.x, d.y, p)
+    N_2.init_matrix(p, y)
+    errors = N_2.learning(y, p, 1000)
+    N_2.predicting(x, y, p)
 
     plt.plot(errors)
     plt.show()
